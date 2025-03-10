@@ -1,36 +1,53 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { useCookies } from "react-cookie";
+import { useGetUserID } from "../hooks/useGetUserID";
 import { useNavigate } from "react-router-dom";
+import { useCookies } from "react-cookie";
 
-export const Auth = () => {
-  return (
-    <div className="auth">
-      <Login />
-      <Register />
-    </div>
-  );
-};
-
-const Login = () => {
-  const [_, setCookies] = useCookies(["access_token"]);
-
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+export const CreateRecipe = () => {
+  const userID = useGetUserID();
+  const [cookies, _] = useCookies(["access_token"]);
+  const [recipe, setRecipe] = useState({
+    name: "",
+    description: "",
+    ingredients: [],
+    instructions: "",
+    imageUrl: "",
+    cookingTime: 0,
+    userOwner: userID,
+  });
 
   const navigate = useNavigate();
 
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setRecipe({ ...recipe, [name]: value });
+  };
+
+  const handleIngredientChange = (event, index) => {
+    const { value } = event.target;
+    const ingredients = [...recipe.ingredients];
+    ingredients[index] = value;
+    setRecipe({ ...recipe, ingredients });
+  };
+
+  const handleAddIngredient = () => {
+    const ingredients = [...recipe.ingredients, ""];
+    setRecipe({ ...recipe, ingredients });
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
-
     try {
-      const result = await axios.post("https://recipes-sharing-backend-1.onrender.com/auth/login", {
-        username,
-        password,
-      });
+      await axios.post(
+        "https://recipes-sharing-backend-1.onrender.com/recipes",
+        { ...recipe },
+        {
+          headers: { authorization: cookies.access_token },
+        }
+      );
 
-      setCookies("access_token", result.data.token);
-      window.localStorage.setItem("userID", result.data.userID);
+      alert("Recipe Created");
       navigate("/");
     } catch (error) {
       console.error(error);
@@ -38,76 +55,61 @@ const Login = () => {
   };
 
   return (
-    <div className="auth-container">
+    <div className="create-recipe">
+      <h2>Create Recipe</h2>
       <form onSubmit={handleSubmit}>
-        <h2>Login</h2>
-        <div className="form-group">
-          <label htmlFor="username">Username:</label>
+        <label htmlFor="name">Name</label>
+        <input
+          type="text"
+          id="name"
+          name="name"
+          value={recipe.name}
+          onChange={handleChange}
+        />
+        <label htmlFor="description">Description</label>
+        <textarea
+          id="description"
+          name="description"
+          value={recipe.description}
+          onChange={handleChange}
+        ></textarea>
+        <label htmlFor="ingredients">Ingredients</label>
+        {recipe.ingredients.map((ingredient, index) => (
           <input
+            key={index}
             type="text"
-            id="username"
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
+            name="ingredients"
+            value={ingredient}
+            onChange={(event) => handleIngredientChange(event, index)}
           />
-        </div>
-        <div className="form-group">
-          <label htmlFor="password">Password:</label>
-          <input
-            type="password"
-            id="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
-        </div>
-        <button type="submit">Login</button>
-      </form>
-    </div>
-  );
-};
-
-const Register = () => {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-
-  const [_, setCookies] = useCookies(["access_token"]);
-  const navigate = useNavigate();
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    try {
-      await axios.post("https://recipes-sharing-backend-1.onrender.com/auth/register", {
-        username,
-        password,
-      });
-      alert("Registration Completed! Now login.");
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  return (
-    <div className="auth-container">
-      <form onSubmit={handleSubmit}>
-        <h2>Register</h2>
-        <div className="form-group">
-          <label htmlFor="username">Username:</label>
-          <input
-            type="text"
-            id="username"
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="password">Password:</label>
-          <input
-            type="password"
-            id="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
-        </div>
-        <button type="submit">Register</button>
+        ))}
+        <button type="button" onClick={handleAddIngredient}>
+          Add Ingredient
+        </button>
+        <label htmlFor="instructions">Instructions</label>
+        <textarea
+          id="instructions"
+          name="instructions"
+          value={recipe.instructions}
+          onChange={handleChange}
+        ></textarea>
+        <label htmlFor="imageUrl">Image URL</label>
+        <input
+          type="text"
+          id="imageUrl"
+          name="imageUrl"
+          value={recipe.imageUrl}
+          onChange={handleChange}
+        />
+        <label htmlFor="cookingTime">Cooking Time (minutes)</label>
+        <input
+          type="number"
+          id="cookingTime"
+          name="cookingTime"
+          value={recipe.cookingTime}
+          onChange={handleChange}
+        />
+        <button type="submit">Create Recipe</button>
       </form>
     </div>
   );
